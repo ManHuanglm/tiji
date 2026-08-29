@@ -15,6 +15,7 @@ kotlinxDatetime = "0.6.1"
 kotlinxCollections = "0.3.8"
 uri = "0.0.19"
 filePicker = "3.1.0"
+androidxActivity = "1.9.3"
 
 [libraries]
 # Ktor
@@ -63,6 +64,9 @@ uri = { module = "com.eygraber:uri-kmp", version.ref = "uri" }
 
 # 文件选择器(桌面)
 filePicker = { module = "com.darkrockstudios:mpfilepicker", version.ref = "filePicker" }
+
+# Android 入口(Compose Activity)
+androidx-activity-compose = { module = "androidx.activity:activity-compose", version.ref = "androidxActivity" }
 
 [plugins]
 kotlin-multiplatform = { id = "org.jetbrains.kotlin.multiplatform", version.ref = "kotlin" }

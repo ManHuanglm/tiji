@@ -6,11 +6,20 @@ plugins {
     alias(libs.plugins.kotlin.serialization)
     alias(libs.plugins.compose.multiplatform)
     alias(libs.plugins.compose.compiler)
+    alias(libs.plugins.android.application)
 }
 
 version = "0.2.7"
 
 kotlin {
+    // Android 目标 - 产出 APK 安装包
+    androidTarget {
+        compilations.all {
+            kotlinOptions {
+                jvmTarget = "17"
+            }
+        }
+    }
     // 当前以 Desktop(JVM)为目标进行编译与运行,commonMain 代码保持 Android-ready
     jvm("desktop")
 
@@ -73,6 +82,49 @@ kotlin {
                 implementation(libs.kotlinx.coroutines.swing)
                 implementation(libs.filePicker)
             }
+        }
+
+        val androidMain by getting {
+            dependencies {
+                implementation(libs.androidx.activity.compose)
+            }
+        }
+    }
+}
+
+/**
+ * Android 构建配置 - 对齐原 Tauri 在移动端的能力,产出 APK 安装包。
+ * minSdk 24 覆盖主流设备;targetSdk 取 AGP 默认推荐值。
+ */
+android {
+    namespace = "com.wuji.app"
+    compileSdk = 35
+
+    defaultConfig {
+        applicationId = "com.wuji.app"
+        minSdk = 24
+        targetSdk = 35
+        versionCode = 1
+        versionName = "0.2.7"
+    }
+
+    buildFeatures {
+        compose = true
+    }
+
+    compileOptions {
+        sourceCompatibility = JavaVersion.VERSION_17
+        targetCompatibility = JavaVersion.VERSION_17
+    }
+
+    // 对齐桌面端:暂不启用 R8/资源压缩,确保骨架稳定可运行
+    buildTypes {
+        release {
+            isMinifyEnabled = false
+            proguardFiles(
+                getDefaultProguardFile("proguard-android-optimize.txt"),
+                "proguard-rules.pro",
+            )
         }
     }
 }
