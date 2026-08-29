@@ -1,13 +1,37 @@
 package com.wuji.app.ui.screen.comic
 
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import cafe.adriel.voyager.core.screen.Screen
-import com.wuji.app.ui.components.EmptyState
+import cafe.adriel.voyager.koin.koinScreenModel
+import cafe.adriel.voyager.navigator.LocalNavigator
+import com.wuji.app.ui.components.ResourceListScaffold
 
 /** 漫画列表页 - 对齐原项目 comic/index.vue */
 object ComicScreen : Screen {
     @Composable
     override fun Content() {
-        EmptyState(message = "漫画 - 接入源后展示推荐漫画与书架")
+        val model = koinScreenModel<ComicScreenModel>()
+        val nav = LocalNavigator.current
+        LaunchedEffect(Unit) { model.loadFirst() }
+        ResourceListScaffold(
+            state = model.uiState,
+            keyword = model.keyword,
+            onKeywordChange = model::onKeywordChange,
+            onSearch = model::search,
+            onRetry = model::refresh,
+            onLoadMore = model::loadMore,
+            keyFn = { it.id.ifBlank { it.title ?: System.identityHashCode(it).toString() } },
+            coverFn = { it.cover },
+            titleFn = { it.title ?: "未命名漫画" },
+            subtitleFn = { buildString {
+                it.author?.let { a -> append(a) }
+                if (!it.tags.isNullOrBlank()) append(" · ${it.tags}")
+                if (!it.status.isNullOrBlank()) append(" · ${it.status}")
+            }.ifBlank { null } },
+            placeholderHint = "搜索漫画名/作者",
+            gridAspect = 0.75f,
+            onItemClick = { nav?.push(ComicDetailScreen(it)) },
+        )
     }
 }

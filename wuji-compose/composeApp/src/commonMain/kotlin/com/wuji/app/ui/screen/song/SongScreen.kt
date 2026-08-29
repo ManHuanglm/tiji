@@ -1,14 +1,33 @@
 package com.wuji.app.ui.screen.song
 
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import cafe.adriel.voyager.core.screen.Screen
-import com.wuji.app.ui.components.EmptyState
+import cafe.adriel.voyager.koin.koinScreenModel
+import cafe.adriel.voyager.navigator.LocalNavigator
+import com.wuji.app.ui.components.ResourceListScaffold
 
-/** 音乐列表页 - 对齐原项目 song/index.vue。聚合多源歌曲推荐/搜索,待接入 SongScreenModel */
+/** 音乐列表页 - 对齐原项目 song/index.vue */
 object SongScreen : Screen {
     @Composable
     override fun Content() {
-        // 复用图片模板:接入 SongScreenModel 后替换为音乐卡片网格 + 播放器入口
-        EmptyState(message = "音乐 - 接入源后展示推荐歌单/歌曲")
+        val model = koinScreenModel<SongScreenModel>()
+        val nav = LocalNavigator.current
+        LaunchedEffect(Unit) { model.loadFirst() }
+        ResourceListScaffold(
+            state = model.uiState,
+            keyword = model.keyword,
+            onKeywordChange = model::onKeywordChange,
+            onSearch = model::search,
+            onRetry = model::refresh,
+            onLoadMore = model::loadMore,
+            keyFn = { it.id.ifBlank { it.title ?: System.identityHashCode(it).toString() } },
+            coverFn = { it.cover },
+            titleFn = { it.title ?: "未命名歌曲" },
+            subtitleFn = { it.author },
+            placeholderHint = "搜索歌曲/歌手",
+            gridAspect = 1.0f,
+            onItemClick = { nav?.push(SongDetailScreen(it)) },
+        )
     }
 }

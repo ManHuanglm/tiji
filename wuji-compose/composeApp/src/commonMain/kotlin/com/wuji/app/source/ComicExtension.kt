@@ -26,4 +26,12 @@ abstract class ComicExtension : Extension() {
             search(keyword, pageNo)?.let { it.copy(list = it.list.map { c -> c.copy(sourceId = id) }) }
         }.getOrNull()
     }
+
+    suspend fun execGetComicDetail(item: ComicItem): ComicDetail? = runCatching {
+        getComicDetail(item.copy(sourceId = id))
+    }.getOrNull()
+
+    suspend fun execGetChapterImages(chapter: ChapterInfo): List<String>? = runCatching {
+        getChapterImages(chapter)
+    }.getOrNull()
 }

@@ -31,4 +31,12 @@ abstract class BookExtension : Extension() {
             search(keyword, pageNo)?.let { it.copy(list = it.list.map { b -> b.copy(sourceId = id) }) }
         }.getOrNull()
     }
+
+    suspend fun execGetBookDetail(item: BookItem): BookDetail? = runCatching {
+        getBookDetail(item.copy(sourceId = id))
+    }.getOrNull()
+
+    suspend fun execGetChapterContent(chapter: ChapterInfo): String? = runCatching {
+        getChapterContent(chapter)
+    }.getOrNull()
 }

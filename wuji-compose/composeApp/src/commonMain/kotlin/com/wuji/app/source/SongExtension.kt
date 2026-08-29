@@ -40,4 +40,12 @@ abstract class SongExtension : Extension() {
             search(keyword, pageNo)?.let { it.copy(list = it.list.map { s -> s.copy(sourceId = id) }) }
         }.getOrNull()
     }
+
+    suspend fun execGetPlaylistDetail(playlist: PlaylistInfo, pageNo: Int = 1): PagedList<SongInfo>? =
+        runCatching { getPlaylistDetail(playlist, pageNo)?.let {
+            it.copy(list = it.list.map { s -> s.copy(sourceId = id) })
+        } }.getOrNull()
+
+    suspend fun execGetSongUrl(song: SongInfo): String? = runCatching { getSongUrl(song) }.getOrNull()
+    suspend fun execGetSongLyric(song: SongInfo): String? = runCatching { getSongLyric(song) }.getOrNull()
 }

@@ -22,4 +22,8 @@ abstract class VideoExtension : Extension() {
             search(keyword, pageNo)?.let { it.copy(list = it.list.map { v -> v.copy(sourceId = id) }) }
         }.getOrNull()
     }
+
+    suspend fun execGetVideoDetail(item: VideoItem): VideoDetail? = runCatching {
+        getVideoDetail(item.copy(sourceId = id))
+    }.getOrNull()
 }
