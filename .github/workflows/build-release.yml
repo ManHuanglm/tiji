@@ -1,0 +1,154 @@
+name: Build & Release
+
+# 触发条件:推送 tag v* 或手动触发
+# 推 tag 自动产出 APK + 桌面端安装包并发布到 GitHub Releases
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+permissions:
+  contents: write   # 发布 Release 所需权限(GitHub 内置 GITHUB_TOKEN,无需额外 PAT)
+  packages: write
+
+jobs:
+  # ============ Android APK 构建 ============
+  build-android:
+    name: Build Android APK
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup JDK 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+        with:
+          packages: 'platform-tools platforms;android-35 build-tools;35.0.0'
+
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v4
+
+      - name: Cache Gradle & Konan
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+            ~/.konan
+          key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle*', '**/libs.versions.toml') }}
+          restore-keys: ${{ runner.os }}-gradle-
+
+      - name: Build Release APK
+        working-directory: wuji-compose
+        run: ./gradlew :composeApp:assembleRelease --no-daemon --stacktrace
+
+      - name: Build Debug APK (备用,便于未签名场景安装)
+        working-directory: wuji-compose
+        run: ./gradlew :composeApp:assembleDebug --no-daemon
+
+      - name: Upload APK Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: wuji-android-apk
+          path: |
+            wuji-compose/composeApp/build/outputs/apk/release/*.apk
+            wuji-compose/composeApp/build/outputs/apk/debug/*.apk
+          if-no-files-found: error
+
+  # ============ 桌面端安装包构建(三平台并行) ============
+  build-desktop:
+    name: Build Desktop (${{ matrix.os }})
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            gradle-task: packageDeb
+            artifact-name: wuji-desktop-linux
+          - os: windows-latest
+            gradle-task: packageMsi
+            artifact-name: wuji-desktop-windows
+          - os: macos-latest
+            gradle-task: packageDmg
+            artifact-name: wuji-desktop-macos
+    runs-on: ${{ matrix.os }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup JDK 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v4
+
+      - name: Cache Gradle & Konan
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+            ~/.konan
+          key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle*', '**/libs.versions.toml') }}
+          restore-keys: ${{ runner.os }}-gradle-
+
+      - name: Build Desktop Distribution
+        working-directory: wuji-compose
+        run: ./gradlew :composeApp:${{ matrix.gradle-task }} --no-daemon
+        shell: bash
+
+      - name: Upload Desktop Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.artifact-name }}
+          path: |
+            wuji-compose/composeApp/build/compose/binaries/**/*.deb
+            wuji-compose/composeApp/build/compose/binaries/**/*.msi
+            wuji-compose/composeApp/build/compose/binaries/**/*.dmg
+          if-no-files-found: warn
+
+  # ============ 发布到 GitHub Releases ============
+  release:
+    name: Publish Release
+    needs: [build-android, build-desktop]
+    runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/tags/v')
+    steps:
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+
+      - name: Display structure
+        run: find artifacts -type f | sort
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.ref_name }}
+          name: 无极 Wuji ${{ github.ref_name }}
+          body: |
+            ## 无极 Wuji ${{ github.ref_name }}
+
+            ### 安装包
+            - **Android APK**: 在手机上开启「未知来源」后安装
+            - **Windows**: `.msi` 安装包
+            - **macOS**: `.dmg` 安装包
+            - **Linux**: `.deb` 安装包
+          files: |
+            artifacts/**/*.apk
+            artifacts/**/*.msi
+            artifacts/**/*.dmg
+            artifacts/**/*.deb
+          draft: false
+          prerelease: false
