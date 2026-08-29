@@ -79,6 +79,8 @@ jobs:
             gradle-task: packageDmg
             artifact-name: wuji-desktop-macos
     runs-on: ${{ matrix.os }}
+    # Windows msi 打包对 WiX/jpackage 版本敏感,允许失败不阻断 Release 发布
+    continue-on-error: ${{ matrix.os == 'windows-latest' }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -122,7 +124,8 @@ jobs:
     name: Publish Release
     needs: [build-android, build-desktop]
     runs-on: ubuntu-latest
-    if: startsWith(github.ref, 'refs/tags/v')
+    # tag 触发且 Android 构建成功即发布;桌面端 Windows 允许失败不影响发布
+    if: always() && !cancelled() && startsWith(github.ref, 'refs/tags/v') && needs.build-android.result == 'success'
     steps:
       - name: Download all artifacts
         uses: actions/download-artifact@v4
