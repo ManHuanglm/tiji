@@ -1,6 +1,7 @@
 package com.wuji.app.ui.screen
 
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -15,7 +16,6 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import cafe.adriel.voyager.core.model.ScreenModel
 import cafe.adriel.voyager.core.model.StateScreenModel
 import cafe.adriel.voyager.core.model.screenModelScope
 import cafe.adriel.voyager.core.screen.Screen
@@ -27,8 +27,6 @@ import com.wuji.app.ui.components.AppTopBar
 import com.wuji.app.ui.screen.auth.LoginScreen
 import com.wuji.app.ui.screen.auth.UserScreen
 import com.wuji.app.ui.screen.sync.ManageSyncScreen
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 
 /** 设置页 - 对齐原项目 setting/index.vue:主题/账号/同步/关于 */
@@ -42,7 +40,7 @@ object SettingScreen : Screen {
             Column(Modifier.fillMaxSize().padding(p).padding(16.dp)) {
                 Text("主题", style = MaterialTheme.typography.titleMedium)
                 ThemeMode.entries.forEach { mode ->
-                    androidx.compose.foundation.layout.Row(
+                    Row(
                         verticalAlignment = Alignment.CenterVertically,
                         modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
                     ) {
@@ -51,7 +49,7 @@ object SettingScreen : Screen {
                     }
                 }
                 Text("账号", style = MaterialTheme.typography.titleMedium, modifier = Modifier.padding(top = 16.dp))
-                androidx.compose.foundation.layout.Row {
+                Row {
                     TextButton(onClick = { navigator?.push(UserScreen) }) { Text("用户中心") }
                     TextButton(onClick = { navigator?.push(LoginScreen) }) { Text("登录") }
                 }

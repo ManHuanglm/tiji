@@ -1,13 +1,102 @@
 package com.wuji.app.ui.screen.comic
 
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.foundation.lazy.grid.items
+import androidx.compose.foundation.lazy.grid.rememberLazyGridState
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.Search
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.unit.dp
 import cafe.adriel.voyager.core.screen.Screen
+import cafe.adriel.voyager.koin.koinScreenModel
+import cafe.adriel.voyager.navigator.LocalNavigator
+import com.wuji.app.source.model.ComicItem
 import com.wuji.app.ui.components.EmptyState
+import com.wuji.app.ui.components.ErrorState
+import com.wuji.app.ui.components.LoadingState
+import com.wuji.app.ui.components.ResourceCard
 
-/** 漫画列表页 - 对齐原项目 comic/index.vue */
+/**
+ * 漫画列表页 - 对齐原项目 comic/index.vue。
+ */
 object ComicScreen : Screen {
     @Composable
     override fun Content() {
-        EmptyState(message = "漫画 - 接入源后展示推荐漫画与书架")
+        val model = koinScreenModel<ComicScreenModel>()
+        val navigator = LocalNavigator.current
+        LaunchedEffect(Unit) { model.loadFirst() }
+        ComicContent(
+            state = model.uiState,
+            keyword = model.keyword,
+            onKeywordChange = model::onKeywordChange,
+            onSearch = model::search,
+            onRetry = model::refresh,
+            onItemClick = { item -> navigator?.push(ComicDetailScreen(item)) },
+        )
+    }
+}
+
+@Composable
+internal fun ComicContent(
+    state: ComicUiState,
+    keyword: String,
+    onKeywordChange: (String) -> Unit,
+    onSearch: () -> Unit,
+    onRetry: () -> Unit,
+    onItemClick: (ComicItem) -> Unit,
+) {
+    val gridState = rememberLazyGridState()
+    Column(Modifier.fillMaxSize()) {
+        OutlinedTextField(
+            value = keyword,
+            onValueChange = onKeywordChange,
+            modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 8.dp),
+            placeholder = { Text("搜索漫画 / 作者") },
+            trailingIcon = {
+                IconButton(onClick = onSearch) {
+                    Icon(Icons.Outlined.Search, contentDescription = "搜索")
+                }
+            },
+            singleLine = true,
+        )
+        Box(Modifier.weight(1f)) {
+            when (state) {
+                is ComicUiState.Loading -> LoadingState()
+                is ComicUiState.Empty -> EmptyState("暂无漫画,请先导入漫画订阅源")
+                is ComicUiState.Error -> ErrorState(state.message, onRetry)
+                is ComicUiState.Success -> LazyVerticalGrid(
+                    columns = GridCells.Adaptive(minSize = 120.dp),
+                    state = gridState,
+                    contentPadding = PaddingValues(8.dp),
+                    horizontalArrangement = Arrangement.spacedBy(4.dp),
+                    verticalArrangement = Arrangement.spacedBy(4.dp),
+                    modifier = Modifier.fillMaxSize(),
+                ) {
+                    items(state.items, key = { it.id + it.sourceId }) { item ->
+                        ResourceCard(
+                            title = item.title ?: "未命名",
+                            coverUrl = item.cover,
+                            subtitle = item.author ?: item.latestChapter,
+                            onClick = { onItemClick(item) },
+                            aspect = 0.72f,
+                        )
+                    }
+                }
+            }
+        }
     }
 }
