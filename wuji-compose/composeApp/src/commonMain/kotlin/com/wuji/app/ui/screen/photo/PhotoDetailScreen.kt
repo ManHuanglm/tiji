@@ -44,8 +44,7 @@ import com.wuji.app.ui.components.EmptyState
 import com.wuji.app.ui.components.ErrorState
 import com.wuji.app.ui.components.LoadingState
 import com.wuji.app.ui.screen.photo.PhotoDetailUiState.Success as DetailSuccess
-import io.kamel.image.KamelImage
-import io.kamel.image.asyncPainterResource
+import coil3.compose.SubcomposeAsyncImage
 import kotlinx.coroutines.flow.collectLatest
 
 /**
@@ -76,7 +75,7 @@ data class PhotoDetailScreen(val item: PhotoItem) : Screen {
                         snackbar.showSnackbar("保存失败:${r.message}")
                         model.clearSaveResult()
                     }
-                    SaveResult.Saving, null -> {}
+                    is SaveResult.Saving, null -> {}
                 }
             }
         }
@@ -86,7 +85,7 @@ data class PhotoDetailScreen(val item: PhotoItem) : Screen {
                 TopAppBar(
                     title = { Text(item.title ?: "图片详情") },
                     navigationIcon = {
-                        IconButton({ nav?.pop() }) {
+                        IconButton(onClick = { nav?.pop() }) {
                             Icon(Icons.AutoMirrored.Filled.ArrowBack, "返回")
                         }
                     },
@@ -105,10 +104,10 @@ data class PhotoDetailScreen(val item: PhotoItem) : Screen {
                             state = listState,
                             modifier = Modifier.fillMaxSize(),
                         ) {
-                            if (!item.description.isNullOrBlank()) {
+                            if (!item.desc.isNullOrBlank()) {
                                 item {
                                     Text(
-                                        item.description!!,
+                                        item.desc!!,
                                         Modifier.padding(12.dp),
                                         style = MaterialTheme.typography.bodyMedium,
                                     )
@@ -162,15 +161,12 @@ private fun PhotoTile(
             .background(Color.Black.copy(alpha = 0.04f))
             .clickable(onClick = onTap),
     ) {
-        KamelImage(
-            resource = asyncPainterResource(
-                data = url,
-                block = { requestBuilder { headers?.forEach { (k, v) -> addHeader(k, v) } } },
-            ),
+        SubcomposeAsyncImage(
+            model = url,
             contentDescription = null,
             contentScale = ContentScale.FillWidth,
-            onLoading = { CircularProgressIndicator(Modifier.padding(24.dp)) },
-            onFailure = { EmptyState("图片加载失败") },
+            loading = { CircularProgressIndicator() },
+            error = { Text("加载失败") },
             modifier = Modifier.fillMaxWidth().aspectRatio(1.0f),
         )
         IconButton(
@@ -200,15 +196,12 @@ private fun FullscreenPhotoPreview(
             verticalArrangement = Arrangement.Center,
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
-            KamelImage(
-                resource = asyncPainterResource(
-                    data = url,
-                    block = { requestBuilder { headers?.forEach { (k, v) -> addHeader(k, v) } } },
-                ),
+            SubcomposeAsyncImage(
+                model = url,
                 contentDescription = null,
                 contentScale = ContentScale.Fit,
-                onLoading = { CircularProgressIndicator() },
-                onFailure = { Text("加载失败", color = Color.White) },
+                loading = { CircularProgressIndicator(color = Color.White) },
+                error = { Text("加载失败", color = Color.White) },
                 modifier = Modifier.fillMaxWidth().weight(1f, fill = false),
             )
             IconButton(onClick = onSave, modifier = Modifier.padding(16.dp)) {

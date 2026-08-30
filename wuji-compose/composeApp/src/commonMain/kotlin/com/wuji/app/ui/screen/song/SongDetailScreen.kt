@@ -68,7 +68,7 @@ data class SongDetailScreen(val song: SongInfo) : Screen {
                 TopAppBar(
                     title = { Text(song.title ?: "歌曲详情") },
                     navigationIcon = {
-                        IconButton({ nav?.pop() }) { Icon(Icons.AutoMirrored.Filled.ArrowBack, "返回") }
+                        IconButton(onClick = { nav?.pop() }) { Icon(Icons.AutoMirrored.Filled.ArrowBack, "返回") }
                     },
                 )
             },
@@ -103,7 +103,7 @@ data class SongDetailScreen(val song: SongInfo) : Screen {
                         )
                         Spacer(Modifier.height(8.dp))
                         Text(
-                            s.song.album?.let { "专辑: $it" }.orEmpty(),
+                            s.song.desc?.let { "简介: $it" }.orEmpty(),
                             color = MaterialTheme.colorScheme.outline,
                         )
                         Spacer(Modifier.height(16.dp))

@@ -1,5 +1,6 @@
 package com.wuji.app.ui.screen.book
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -14,9 +15,9 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.ListItem
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
@@ -69,7 +70,7 @@ data class BookDetailScreen(val item: BookItem) : Screen {
                 TopAppBar(
                     title = { Text(item.title ?: "书籍详情") },
                     navigationIcon = {
-                        IconButton({ nav?.pop() }) {
+                        IconButton(onClick = { nav?.pop() }) {
                             Icon(Icons.AutoMirrored.Filled.ArrowBack, "返回")
                         }
                     },
@@ -132,16 +133,14 @@ data class BookDetailScreen(val item: BookItem) : Screen {
 
 @Composable
 private fun ChapterRow(chapter: ChapterInfo, onClick: () -> Unit) {
-    androidx.compose.material3.ListItem(
+    ListItem(
         headlineContent = { Text(chapter.title) },
         supportingContent = { Text("第 ${chapter.index} 章", color = MaterialTheme.colorScheme.outline) },
-        modifier = Modifier.fillMaxWidth().clickableCompat(onClick),
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onClick),
     )
 }
-
-@Composable
-private fun Modifier.clickableCompat(onClick: () -> Unit): Modifier =
-    this.then(androidx.compose.foundation.clickable(onClick = onClick))
 
 /** 页内阅读器浮层(占满窗口,关闭时弹出详情) */
 @OptIn(ExperimentalMaterial3Api::class)
@@ -157,7 +156,7 @@ private fun ReaderOverlay(
             TopAppBar(
                 title = { Text(readerState.chapter.title) },
                 navigationIcon = {
-                    IconButton(onClose) { Icon(Icons.AutoMirrored.Filled.ArrowBack, "关闭") }
+                    IconButton(onClick = onClose) { Icon(Icons.AutoMirrored.Filled.ArrowBack, "关闭") }
                 },
                 actions = {
                     IconButton(onClick = { fontSizeSp = (fontSizeSp.value - 1).coerceAtLeast(12f).sp }) {

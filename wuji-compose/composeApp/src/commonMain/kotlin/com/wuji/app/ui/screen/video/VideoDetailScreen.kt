@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.selection.selectable
@@ -33,6 +34,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import cafe.adriel.voyager.core.screen.Screen
 import cafe.adriel.voyager.koin.koinScreenModel
@@ -64,7 +66,7 @@ data class VideoDetailScreen(val item: VideoItem) : Screen {
                 TopAppBar(
                     title = { Text(item.title ?: "影视详情") },
                     navigationIcon = {
-                        IconButton({ nav?.pop() }) { Icon(Icons.AutoMirrored.Filled.ArrowBack, "返回") }
+                        IconButton(onClick = { nav?.pop() }) { Icon(Icons.AutoMirrored.Filled.ArrowBack, "返回") }
                     },
                 )
             },
@@ -104,7 +106,7 @@ data class VideoDetailScreen(val item: VideoItem) : Screen {
                                         )
                                         Spacer(Modifier.padding(8.dp))
                                         Column {
-                                            Text(line.label)
+                                            Text(line.name)
                                             Text(
                                                 line.url.take(72) + if (line.url.length > 72) "…" else "",
                                                 style = MaterialTheme.typography.labelSmall,
@@ -166,7 +168,7 @@ private fun PlayerShell(line: PlayUrl?, onOpenExternal: (PlayUrl?) -> Unit) {
         } else {
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
                 Icon(Icons.Outlined.PlayArrow, contentDescription = null, tint = Color.White,
-                    modifier = androidx.compose.ui.Modifier.size(64.dp))
+                    modifier = Modifier.size(64.dp))
                 Text(
                     "点击下方按钮用系统播放器打开",
                     color = Color.White,

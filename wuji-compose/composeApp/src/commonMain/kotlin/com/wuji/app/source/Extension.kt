@@ -219,8 +219,24 @@ interface SourceFetcher {
         encoding: String? = null,
     ): String
 
+    /** 便捷别名(fetchString = fetchText,供业务直观调用) */
+    suspend fun fetchString(url: String, headers: Map<String, String>? = null): String? =
+        runCatching { fetchText(url, headers) }.getOrNull()
+
     suspend fun fetchBytes(
         url: String,
         headers: Map<String, String>? = null,
     ): ByteArray
+
+    /**
+     * 流式获取,用于下载、图片保存等大文件场景。
+     * 流式避免一次性占用内存;默认实现通过 [fetchBytes] 包一层 ByteArrayInputStream,
+     * 具体 Ktor/KtorSourceFetcher 可重写为真实 ByteReadChannel→InputStream(若需要更高效)。
+     */
+    suspend fun fetchStream(
+        url: String,
+        headers: Map<String, String>? = null,
+    ): java.io.InputStream? = runCatching {
+        java.io.ByteArrayInputStream(fetchBytes(url, headers))
+    }.getOrNull()
 }

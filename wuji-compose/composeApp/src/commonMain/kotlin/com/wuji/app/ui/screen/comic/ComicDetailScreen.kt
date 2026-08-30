@@ -1,6 +1,7 @@
 package com.wuji.app.ui.screen.comic
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -16,9 +17,11 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.ListItem
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -38,8 +41,7 @@ import com.wuji.app.ui.components.ErrorState
 import com.wuji.app.ui.components.LoadingState
 import com.wuji.app.ui.screen.comic.ComicDetailUiState.Success as ComicSuccess
 import com.wuji.app.ui.screen.comic.ComicReaderState.Ready as ReaderReady
-import io.kamel.image.KamelImage
-import io.kamel.image.asyncPainterResource
+import coil3.compose.SubcomposeAsyncImage
 
 /** 漫画详情页 - 封面简介 + 章节列表,点击章节进入图片阅读器 */
 data class ComicDetailScreen(val item: ComicItem) : Screen {
@@ -63,7 +65,7 @@ data class ComicDetailScreen(val item: ComicItem) : Screen {
                 TopAppBar(
                     title = { Text(item.title ?: "漫画详情") },
                     navigationIcon = {
-                        IconButton({ nav?.pop() }) {
+                        IconButton(onClick = { nav?.pop() }) {
                             Icon(Icons.AutoMirrored.Filled.ArrowBack, "返回")
                         }
                     },
@@ -103,11 +105,12 @@ data class ComicDetailScreen(val item: ComicItem) : Screen {
                             )
                         }
                         items(d.chapters) { ch ->
-                            androidx.compose.material3.ListItem(
+                            ListItem(
                                 headlineContent = { Text(ch.title) },
                                 supportingContent = { Text("第 ${ch.index} 话", color = MaterialTheme.colorScheme.outline) },
-                                modifier = Modifier.fillMaxWidth()
-                                    .then(androidx.compose.foundation.clickable { model.openChapter(item, ch) }),
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clickable { model.openChapter(item, ch) },
                             )
                         }
                     }
@@ -129,7 +132,7 @@ private fun ReaderOverlay(
             TopAppBar(
                 title = { Text(state.chapter.title) },
                 navigationIcon = {
-                    IconButton(onClose) { Icon(Icons.AutoMirrored.Filled.ArrowBack, "关闭") }
+                    IconButton(onClick = onClose) { Icon(Icons.AutoMirrored.Filled.ArrowBack, "关闭") }
                 },
             )
         },
@@ -143,7 +146,7 @@ private fun ReaderOverlay(
                     Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                         Column(horizontalAlignment = Alignment.CenterHorizontally) {
                             Text(state.message, color = Color.White)
-                            androidx.compose.material3.TextButton(onRetry) { Text("重试", color = Color.White) }
+                            TextButton(onRetry) { Text("重试", color = Color.White) }
                         }
                     }
                 }
@@ -153,17 +156,12 @@ private fun ReaderOverlay(
                         contentPadding = PaddingValues(0.dp),
                     ) {
                         items(state.images) { url ->
-                            KamelImage(
-                                resource = asyncPainterResource(url),
+                            SubcomposeAsyncImage(
+                                model = url,
                                 contentDescription = null,
                                 contentScale = ContentScale.FillWidth,
-                                onLoading = {
-                                    Box(
-                                        Modifier.fillMaxWidth().padding(48.dp),
-                                        contentAlignment = Alignment.Center,
-                                    ) { CircularProgressIndicator(color = Color.White) }
-                                },
-                                onFailure = { EmptyState("图片加载失败") },
+                                loading = { CircularProgressIndicator(color = Color.White) },
+                                error = { Text("加载失败", color = Color.White) },
                                 modifier = Modifier.fillMaxWidth(),
                             )
                         }

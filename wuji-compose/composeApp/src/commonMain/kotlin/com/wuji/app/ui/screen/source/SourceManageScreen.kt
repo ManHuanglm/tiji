@@ -49,6 +49,7 @@ import cafe.adriel.voyager.navigator.LocalNavigator
 import com.wuji.app.data.SubscribeSourceRepository
 import com.wuji.app.source.SourceType
 import com.wuji.app.source.model.SubscribeDetail
+import com.wuji.app.source.model.SubscribeItem
 import com.wuji.app.source.model.SubscribeSource
 import com.wuji.app.ui.components.AppTopBar
 import com.wuji.app.ui.components.EmptyState
@@ -98,13 +99,13 @@ object SourceManageScreen : Screen {
                     title = "订阅源管理",
                     onBack = { nav?.pop() },
                     actions = {
-                        IconButton({ showImport = true }) {
+                        IconButton(onClick = { showImport = true }) {
                             Icon(Icons.Outlined.Add, "导入源")
                         }
-                        IconButton({ nav?.push(SourceMyScreen) }) {
+                        IconButton(onClick = { nav?.push(SourceMyScreen) }) {
                             Icon(Icons.Outlined.Add, "我的源")
                         }
-                        IconButton({ nav?.push(SourceMarketScreen) }) {
+                        IconButton(onClick = { nav?.push(SourceMarketScreen) }) {
                             Icon(Icons.Outlined.Store, "源市场")
                         }
                     },
@@ -366,10 +367,11 @@ class SourceManageScreenModel(
     fun checkConnectivity(url: String) {
         screenModelScope.launch {
             mutableState.value = state.value.copy(checkingUrl = true)
+            val res = runCatching { fetcher.fetchString(url) }
             _action.value = SourceActionResult.Checked(
                 url = url,
-                ok = runCatching { fetcher.fetchString(url) != null }.getOrDefault(false),
-                msg = runCatching { fetcher.fetchString(url) }.exceptionOrNull()?.message.orEmpty(),
+                ok = res.isSuccess && res.getOrNull() != null,
+                msg = res.exceptionOrNull()?.message.orEmpty(),
             )
             mutableState.value = state.value.copy(checkingUrl = false)
         }

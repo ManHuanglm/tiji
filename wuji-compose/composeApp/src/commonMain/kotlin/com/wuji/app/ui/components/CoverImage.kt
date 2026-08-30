@@ -12,10 +12,13 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
-import io.kamel.image.KamelImage
-import io.kamel.image.asyncPainterResource
+import coil3.compose.AsyncImage
+import coil3.compose.SubcomposeAsyncImage
 
-/** 详情页通用封面 - 1:1 比例,加载中占位,失败占位。 */
+/**
+ * 详情页通用封面 - 默认 3:4 比例。
+ * 加载中显示 CircularProgressIndicator;失败显示「无封面」文字占位。
+ */
 @Composable
 fun CoverImage(
     url: String?,
@@ -23,8 +26,7 @@ fun CoverImage(
     modifier: Modifier = Modifier,
     aspect: Float = 0.75f,
 ) {
-    val safeUrl = url
-    if (safeUrl.isNullOrBlank()) {
+    if (url.isNullOrBlank()) {
         Box(
             modifier = modifier
                 .fillMaxWidth()
@@ -36,12 +38,12 @@ fun CoverImage(
         }
         return
     }
-    KamelImage(
-        resource = asyncPainterResource(safeUrl),
+    SubcomposeAsyncImage(
+        model = url,
         contentDescription = contentDescription,
         contentScale = ContentScale.Crop,
-        onLoading = { CircularProgressIndicator() },
-        onFailure = {
+        loading = { CircularProgressIndicator() },
+        error = {
             Box(contentAlignment = Alignment.Center) {
                 Text("无封面", color = Color.Gray)
             }

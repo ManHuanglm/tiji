@@ -3,23 +3,23 @@ package com.wuji.app.download
 /**
  * 下载管理器 - 跨平台 expect/actual。
  * Desktop 写本地磁盘;Android 写 Downloads 公共目录(MediaStore / 存储路径)。
- * 状态通过 [DownloadListener] 回调;ScreenModel 将回调转成 State。
+ * 状态通过 [DownloadListener] 回调;实现类内部维护 taskId → task/listener 映射,支持 resume。
  */
 interface Downloader {
 
-    /** 启动/恢复 下载任务。返回任务内部 ID */
+    /** 启动下载任务。返回 taskId(等于 task.id) */
     fun enqueue(task: DownloadTask, listener: DownloadListener): String
 
     /** 暂停 */
     fun pause(taskId: String)
 
-    /** 恢复 */
+    /** 恢复(从上次位置续传) */
     fun resume(taskId: String)
 
     /** 取消(清理临时文件) */
     fun cancel(taskId: String)
 
-    /** 清理完成/失败任务记录(非 actual 内部),仅移除监听器 */
+    /** 移除任务记录 */
     fun remove(taskId: String)
 }
 

@@ -58,7 +58,7 @@ object DownloadManagerScreen : Screen {
                 TopAppBar(
                     title = { Text("下载管理") },
                     navigationIcon = {
-                        IconButton({ nav?.pop() }) {
+                        IconButton(onClick = { nav?.pop() }) {
                             Icon(Icons.AutoMirrored.Filled.ArrowBack, "返回")
                         }
                     },
