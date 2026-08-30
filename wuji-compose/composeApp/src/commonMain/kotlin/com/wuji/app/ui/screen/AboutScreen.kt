@@ -24,7 +24,7 @@ object AboutScreen : Screen {
         Scaffold(topBar = { AppTopBar(title = "关于", onBack = { navigator?.pop() }) }) { p ->
             Column(Modifier.fillMaxSize().padding(p).padding(20.dp)) {
                 Text("无极 Wuji", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
-                Text("版本 0.2.7 (Compose Multiplatform)", style = MaterialTheme.typography.bodyMedium)
+                Text("版本 0.0.02 (Compose Multiplatform)", style = MaterialTheme.typography.bodyMedium)
                 Spacer(Modifier.height(16.dp))
                 Text(
                     "一款界面简洁、功能强大的跨平台资源聚合浏览器。聚合图片、音乐、书籍、漫画、视频资源的浏览、搜索与收藏。",

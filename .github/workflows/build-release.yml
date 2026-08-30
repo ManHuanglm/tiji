@@ -1,19 +1,23 @@
 name: Build & Release
 
-# 触发条件:推送 tag v* 或手动触发
-# 推 tag 自动产出 APK + 桌面端安装包并发布到 GitHub Releases
+# ================= 触发条件 =================
+# - push 到 main: 产出 APK 与桌面包 Artifact(用于测试/下载)
+# - push tag v* : 同上 + 自动发布到 GitHub Releases
+# - workflow_dispatch: 手动点 Actions 也可触发构建
 on:
   push:
+    branches:
+      - main
     tags:
       - 'v*'
   workflow_dispatch:
 
 permissions:
-  contents: write   # 发布 Release 所需权限(GitHub 内置 GITHUB_TOKEN,无需额外 PAT)
+  contents: write   # 发布 Release 所需权限(GitHub 内置 GITHUB_TOKEN)
   packages: write
 
 jobs:
-  # ============ Android APK 构建 ============
+  # ============ Android APK 构建(每次 push 必跑) ============
   build-android:
     name: Build Android APK
     runs-on: ubuntu-latest
@@ -45,6 +49,10 @@ jobs:
           key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle*', '**/libs.versions.toml') }}
           restore-keys: ${{ runner.os }}-gradle-
 
+      - name: Grant Execute Permission (Gradle Wrapper)
+        working-directory: wuji-compose
+        run: chmod +x gradlew
+
       - name: Build Release APK
         working-directory: wuji-compose
         run: ./gradlew :composeApp:assembleRelease --no-daemon --stacktrace
@@ -53,14 +61,36 @@ jobs:
         working-directory: wuji-compose
         run: ./gradlew :composeApp:assembleDebug --no-daemon
 
+      # 重命名 APK,带版本号和 Git 短 SHA 便于区分
+      - name: Rename APK artifacts
+        id: rename
+        run: |
+          set -e
+          SHORT_SHA="${GITHUB_SHA:0:7}"
+          VERSION="0.0.02"
+          APK_DIR="wuji-compose/composeApp/build/outputs/apk"
+          for f in "$APK_DIR/release/"*.apk; do
+            [ -f "$f" ] || continue
+            base=$(basename "$f" .apk)
+            mv "$f" "$APK_DIR/release/wuji-v${VERSION}-${SHORT_SHA}-release.apk"
+          done
+          for f in "$APK_DIR/debug/"*.apk; do
+            [ -f "$f" ] || continue
+            base=$(basename "$f" .apk)
+            mv "$f" "$APK_DIR/debug/wuji-v${VERSION}-${SHORT_SHA}-debug.apk"
+          done
+          echo "apk_version=${VERSION}" >> $GITHUB_OUTPUT
+          echo "apk_sha=${SHORT_SHA}" >> $GITHUB_OUTPUT
+
       - name: Upload APK Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: wuji-android-apk
+          name: wuji-android-apk-${{ steps.rename.outputs.apk_version }}-${{ steps.rename.outputs.apk_sha }}
           path: |
             wuji-compose/composeApp/build/outputs/apk/release/*.apk
             wuji-compose/composeApp/build/outputs/apk/debug/*.apk
           if-no-files-found: error
+          retention-days: 30
 
   # ============ 桌面端安装包构建(三平台并行) ============
   build-desktop:
@@ -72,12 +102,15 @@ jobs:
           - os: ubuntu-latest
             gradle-task: packageDeb
             artifact-name: wuji-desktop-linux
+            ext: deb
           - os: windows-latest
             gradle-task: packageMsi
             artifact-name: wuji-desktop-windows
+            ext: msi
           - os: macos-latest
             gradle-task: packageDmg
             artifact-name: wuji-desktop-macos
+            ext: dmg
     runs-on: ${{ matrix.os }}
     # Windows msi 打包对 WiX/jpackage 版本敏感,允许失败不阻断 Release 发布
     continue-on-error: ${{ matrix.os == 'windows-latest' }}
@@ -104,6 +137,11 @@ jobs:
           key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle*', '**/libs.versions.toml') }}
           restore-keys: ${{ runner.os }}-gradle-
 
+      - name: Grant Execute Permission (Gradle Wrapper)
+        if: runner.os != 'Windows'
+        working-directory: wuji-compose
+        run: chmod +x gradlew
+
       - name: Build Desktop Distribution
         working-directory: wuji-compose
         run: ./gradlew :composeApp:${{ matrix.gradle-task }} --no-daemon
@@ -114,17 +152,15 @@ jobs:
         with:
           name: ${{ matrix.artifact-name }}
           path: |
-            wuji-compose/composeApp/build/compose/binaries/**/*.deb
-            wuji-compose/composeApp/build/compose/binaries/**/*.msi
-            wuji-compose/composeApp/build/compose/binaries/**/*.dmg
+            wuji-compose/composeApp/build/compose/binaries/**/*.${{ matrix.ext }}
           if-no-files-found: warn
+          retention-days: 30
 
-  # ============ 发布到 GitHub Releases ============
+  # ============ 发布到 GitHub Releases (仅 tag 触发) ============
   release:
     name: Publish Release
     needs: [build-android, build-desktop]
     runs-on: ubuntu-latest
-    # tag 触发且 Android 构建成功即发布;桌面端 Windows 允许失败不影响发布
     if: always() && !cancelled() && startsWith(github.ref, 'refs/tags/v') && needs.build-android.result == 'success'
     steps:
       - name: Download all artifacts
@@ -143,11 +179,19 @@ jobs:
           body: |
             ## 无极 Wuji ${{ github.ref_name }}
 
+            ### 版本号
+            - versionName: `0.0.02`
+            - versionCode: `2`
+            - 构建 SHA: `${GITHUB_SHA:0:7}`
+
             ### 安装包
-            - **Android APK**: 在手机上开启「未知来源」后安装
+            - **Android APK**: 在手机上开启「未知来源」后安装（debug 签名可直接安装）
             - **Windows**: `.msi` 安装包
             - **macOS**: `.dmg` 安装包
             - **Linux**: `.deb` 安装包
+
+            ### 升级建议
+            - 首次安装或升级时若提示签名不匹配,请卸载旧版本后重新安装
           files: |
             artifacts/**/*.apk
             artifacts/**/*.msi

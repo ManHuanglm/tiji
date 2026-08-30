@@ -9,7 +9,7 @@ plugins {
     alias(libs.plugins.android.application)
 }
 
-version = "0.2.7"
+version = "0.0.02"
 
 kotlin {
     // Android 目标 - 产出 APK 安装包
@@ -104,8 +104,8 @@ android {
         applicationId = "com.wuji.app"
         minSdk = 24
         targetSdk = 35
-        versionCode = 1
-        versionName = "0.2.7"
+        versionCode = 2
+        versionName = "0.0.02"
     }
 
     buildFeatures {
@@ -136,7 +136,7 @@ compose.desktop {
         nativeDistributions {
             targetFormats(TargetFormat.Dmg, TargetFormat.Msi, TargetFormat.Deb)
             packageName = "wuji"
-            packageVersion = "1.0.0"
+            packageVersion = "0.0.02"
             description = "无极 - 跨平台资源聚合浏览器"
             vendor = "wuji"
             windows {
