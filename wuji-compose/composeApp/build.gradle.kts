@@ -127,6 +127,39 @@ android {
             )
         }
     }
+
+    // =============== 按 ABI 拆分 APK (arm64-v8a / armeabi-v7a / x86_64 / x86 + universal) ===============
+    // 每个架构单独一个 APK,体积更小;同时保留通用 universal 包兜底。
+    // versionCode 按架构加偏移,保证覆盖升级时每个架构独立单调递增 (Google Play 商店要求)。
+    splits {
+        abi {
+            isEnable = true
+            reset()
+            include("armeabi-v7a", "arm64-v8a", "x86", "x86_64")
+            isUniversalApk = true
+        }
+    }
+    // AGP 8.x 推荐通过 variant.outputs 读取 ABI 过滤器来计算 versionCode 偏移
+    // (universal APK 没有 ABI filter,versionCode = base)
+    applicationVariants.all {
+        val baseVersionCode = defaultConfig.versionCode!!
+        outputs.all { output ->
+            val abiFilter = output.filters
+                .filterIsInstance<com.android.build.gradle.internal.api.FilterDataImpl>()
+                .firstOrNull { it.filterType == com.android.build.OutputFile.ABI }
+                ?.identifier
+            val abiOffset = when (abiFilter) {
+                "armeabi-v7a" -> 10
+                "arm64-v8a"   -> 20
+                "x86"         -> 30
+                "x86_64"      -> 40
+                null /* universal */ -> 0
+                else -> 0
+            }
+            val impl = output as com.android.build.gradle.internal.api.ApkVariantOutputImpl
+            impl.versionCodeOverride = baseVersionCode * 100 + abiOffset
+        }
+    }
 }
 
 compose.desktop {
