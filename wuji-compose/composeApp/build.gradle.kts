@@ -1,4 +1,3 @@
-import com.android.build.api.variant.VariantOutput
 import org.jetbrains.compose.desktop.application.dsl.TargetFormat
 import org.jetbrains.kotlin.gradle.ExperimentalWasmDsl
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
@@ -145,7 +144,7 @@ android {
         val baseVersionCode = defaultConfig.versionCode!!
         outputs.forEach { output ->
             val impl = output as com.android.build.gradle.internal.api.ApkVariantOutputImpl
-            val abi = impl.getFilter(VariantOutput.FilterType.ABI)
+            val abi: String? = impl.getFilter("ABI")
             val abiOffset = when (abi) {
                 "armeabi-v7a" -> 10
                 "arm64-v8a"   -> 20
