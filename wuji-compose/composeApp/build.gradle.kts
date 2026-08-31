@@ -1,4 +1,4 @@
-import com.android.build.api.variant.FilterConfiguration
+import com.android.build.api.variant.VariantOutput
 import org.jetbrains.compose.desktop.application.dsl.TargetFormat
 import org.jetbrains.kotlin.gradle.ExperimentalWasmDsl
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
@@ -16,10 +16,8 @@ version = "0.0.02"
 kotlin {
     // Android 目标 - 产出 APK 安装包
     androidTarget {
-        compilations.all {
-            compilerOptions {
-                jvmTarget.set(JvmTarget.JVM_17)
-            }
+        compilerOptions {
+            jvmTarget.set(JvmTarget.JVM_17)
         }
     }
     // 当前以 Desktop(JVM)为目标进行编译与运行,commonMain 代码保持 Android-ready
@@ -147,7 +145,7 @@ android {
         val baseVersionCode = defaultConfig.versionCode!!
         outputs.forEach { output ->
             val impl = output as com.android.build.gradle.internal.api.ApkVariantOutputImpl
-            val abi = impl.getFilter(FilterConfiguration.FilterType.ABI)?.identifier
+            val abi = impl.getFilter(VariantOutput.FilterType.ABI)
             val abiOffset = when (abi) {
                 "armeabi-v7a" -> 10
                 "arm64-v8a"   -> 20
