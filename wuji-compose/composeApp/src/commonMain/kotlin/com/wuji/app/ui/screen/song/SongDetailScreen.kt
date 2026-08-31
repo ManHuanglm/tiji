@@ -79,7 +79,7 @@ data class SongDetailScreen(val song: SongInfo) : Screen {
             ) {
                 when (val s = model.uiState) {
                     SongPlayerUiState.Loading -> CircularProgressIndicator(Modifier.padding(24.dp))
-                    is SongPlayerUiState.Error -> ErrorState(s.message) { model.load(song) }
+                    is SongPlayerUiState.Error -> ErrorState(message = s.message, onRetry = { model.load(song) })
                     is SongReady -> {
                         LaunchedEffect(s) { lyric = s.lyric }
                         // 封面

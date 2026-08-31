@@ -96,7 +96,7 @@ data class PhotoDetailScreen(val item: PhotoItem) : Screen {
             Box(Modifier.padding(pad)) {
                 when (val s = model.uiState) {
                     PhotoDetailUiState.Loading -> LoadingState()
-                    is PhotoDetailUiState.Error -> ErrorState(s.message) { model.load(item) }
+                    is PhotoDetailUiState.Error -> ErrorState(message = s.message, onRetry = { model.load(item) })
                     is DetailSuccess -> {
                         val listState = rememberLazyListState()
                         val headers = s.headers

@@ -23,6 +23,13 @@ kotlin {
     // 当前以 Desktop(JVM)为目标进行编译与运行,commonMain 代码保持 Android-ready
     jvm("desktop")
 
+    // 全局 opt-in:Material3 1.7 起 Scaffold/TopAppBar 等常用组件标记为 ExperimentalMaterial3Api,
+    // 项目大量页面使用,逐文件加注解成本高且易漏,统一 opt-in 降低维护负担。
+    compilerOptions {
+        freeCompilerArgs.add("-opt-in=androidx.compose.material3.ExperimentalMaterial3Api")
+        freeCompilerArgs.add("-opt-in=androidx.compose.foundation.ExperimentalFoundationApi")
+    }
+
     sourceSets {
         val commonMain by getting {
             dependencies {

@@ -79,7 +79,7 @@ data class BookDetailScreen(val item: BookItem) : Screen {
         ) { pad ->
             when (val s = model.uiState) {
                 BookDetailUiState.Loading -> LoadingState()
-                is BookDetailUiState.Error -> ErrorState(s.message) { model.load(item) }
+                is BookDetailUiState.Error -> ErrorState(message = s.message, onRetry = { model.load(item) })
                 is BookSuccess -> {
                     val d = s.detail
                     LazyColumn(

@@ -73,7 +73,7 @@ data class VideoDetailScreen(val item: VideoItem) : Screen {
         ) { pad ->
             when (val s = model.uiState) {
                 VideoPlayerUiState.Loading -> LoadingState()
-                is VideoPlayerUiState.Error -> ErrorState(s.message) { model.load(item) }
+                is VideoPlayerUiState.Error -> ErrorState(message = s.message, onRetry = { model.load(item) })
                 is VideoReady -> {
                     val d = s.detail
                     LazyColumn(Modifier.fillMaxSize().padding(pad)) {

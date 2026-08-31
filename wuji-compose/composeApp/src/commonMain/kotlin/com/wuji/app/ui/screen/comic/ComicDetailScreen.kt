@@ -74,7 +74,7 @@ data class ComicDetailScreen(val item: ComicItem) : Screen {
         ) { pad ->
             when (val s = model.uiState) {
                 ComicDetailUiState.Loading -> LoadingState()
-                is ComicDetailUiState.Error -> ErrorState(s.message) { model.load(item) }
+                is ComicDetailUiState.Error -> ErrorState(message = s.message, onRetry = { model.load(item) })
                 is ComicSuccess -> {
                     val d = s.detail
                     LazyColumn(
