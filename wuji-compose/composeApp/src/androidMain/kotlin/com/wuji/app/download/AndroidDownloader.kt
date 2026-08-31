@@ -101,18 +101,19 @@ class AndroidDownloader : Downloader {
                 listener.onUpdate(DownloadStatus.Running(task, 0f))
                 val buf = ByteArray(8192)
                 var downloaded = 0L
-                while (true) {
+                var finished = false
+                while (!finished) {
                     if (canceled[task.id]?.get() == true) {
                         listener.onUpdate(DownloadStatus.Canceled(task))
-                        return@suspend
+                        return@runCatching
                     }
                     if (paused[task.id]?.get() == true) {
                         val lastP = minOf(0.99f, downloaded / (downloaded + 8192f).coerceAtLeast(1f))
                         listener.onUpdate(DownloadStatus.Paused(task, lastP))
-                        return@suspend
+                        return@runCatching
                     }
                     val n = input.read(buf)
-                    if (n < 0) break
+                    if (n < 0) { finished = true; continue }
                     outStream.write(buf, 0, n)
                     downloaded += n
                     val p = minOf(0.99f, downloaded / (downloaded + 32768f).coerceAtLeast(1f))
