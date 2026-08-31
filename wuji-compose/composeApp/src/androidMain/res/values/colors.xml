@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- 应用主色:橙 -->
+    <color name="color_primary">#EA580C</color>
+    <color name="color_primary_dark">#C2410C</color>
+    <!-- 启动图标背景色 -->
+    <color name="ic_launcher_bg">#EA580C</color>
+    <!-- 窗口背景色(启动冷启动白屏/黑屏阶段) -->
+    <color name="window_background_light">#F7F8FA</color>
+    <color name="window_background_dark">#121212</color>
+    <!-- 状态栏透明 -->
+    <color name="status_bar_transparent">@android:color/transparent</color>
+</resources>

@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    网络安全配置 - 配合 manifest usesCleartextTraffic="false"。
+    红米 K50 / MIUI 对明文 HTTP 限制较严,显式声明 base-config 可避免偶发的网络初始化异常。
+    当前全局禁用明文;后续如需对测试环境域名放行,按 domain-config 粒度添加。
+-->
+<network-security-config>
+    <base-config cleartextTrafficPermitted="false">
+        <trust-anchors>
+            <certificates src="system" />
+        </trust-anchors>
+    </base-config>
+</network-security-config>

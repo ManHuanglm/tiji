@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    兼容版启动图标(minSdk 24~25 兜底,Android 8.0 以下不支持 adaptive-icon)。
+    Android 8.0+ 优先使用 mipmap-anydpi-v26 下的自适应图标(系统蒙版裁剪)。
+    由:橙色背景 + 中心白色"W"字母两层叠加,构成完整的方形圆角图标。
+-->
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- 底层:橙色圆角矩形 -->
+    <item>
+        <shape android:shape="rectangle">
+            <solid android:color="@color/ic_launcher_bg" />
+            <corners android:radius="16dp" />
+        </shape>
+    </item>
+    <!-- 上层:白色 W 字母,居中显示 -->
+    <item
+        android:drawable="@drawable/ic_launcher_foreground"
+        android:gravity="center" />
+</layer-list>

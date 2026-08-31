@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    启动图标前景层 - 橙色圆角方块内嵌白色"无极"首字母 W。
+    用于 Android 8.0+ 自适应图标 (adaptive-icon) 与 Android 12+ 启动屏图标。
+    纯矢量,无需按分辨率生成多套 PNG。
+-->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <!--
+        自适应图标安全区:系统蒙版可视区域 ≈ 内圈 72x72 (居中,半径 36)。
+        前景图形放在 viewport 中心 36..72 范围内,避免被圆形/水滴/方形蒙版裁剪。
+    -->
+    <group android:translateX="30" android:translateY="30" android:scaleX="0.85" android:scaleY="0.85" android:pivotX="24" android:pivotY="24">
+        <!-- 首字母 W,白色描边 4dp -->
+        <path
+            android:fillColor="#FFFFFF"
+            android:pathData="M2,10 L10,38 L18,22 L26,38 L34,10 L29,10 L21,33 L15,16 L9,33 L2,10 Z" />
+    </group>
+</vector>

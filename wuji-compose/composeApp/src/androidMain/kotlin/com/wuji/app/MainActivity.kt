@@ -3,20 +3,18 @@ package com.wuji.app
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
-import com.wuji.app.core.storage.ContextHolder
 
 /**
  * Android 应用主入口 Activity。
- * 对齐桌面端 Main_desktop.kt:负责初始化 Context、Koin 并装载 Compose 根。
+ * 只负责装载 Compose 根视图;Context 注入 + Koin 初始化已下沉至 [WujiApplication.onCreate]。
  *
- * 注意调用顺序:[ContextHolder.init] 必须先于 [initKoin],
- * 因 Koin 的 appModule 会触发 createSettings(),后者依赖 ApplicationContext。
+ * 红米 K50 / MIUI 兼容性说明:
+ * 将 Koin + ContextHolder 初始化从 Activity 迁移到 Application,可规避 MIUI
+ * 对 Activity 生命周期的激进调度(多窗口/动画/分屏导致的重复 onCreate)造成的重复启动崩溃。
  */
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        ContextHolder.init(this)
-        initKoin()
         setContent {
             App()
         }

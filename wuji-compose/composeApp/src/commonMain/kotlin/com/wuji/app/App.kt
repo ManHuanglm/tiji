@@ -33,10 +33,14 @@ fun App() {
     }
 }
 
-/** 初始化 Koin 容器(桌面/通用入口共用) */
+/** 初始化 Koin 容器(桌面/通用入口共用),幂等:已初始化则跳过,避免重建崩溃 */
 fun initKoin() {
     Napier.base(DebugAntilog())
-    startKoin {
-        modules(appModule())
+    try {
+        startKoin {
+            modules(appModule())
+        }
+    } catch (_: IllegalStateException) {
+        // Activity 重建/窗口重建时 Koin 已在运行,直接复用现有实例即可,无需 stop/重启
     }
 }

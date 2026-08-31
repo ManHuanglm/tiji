@@ -23,12 +23,15 @@
     <uses-feature android:name="android.hardware.touchscreen" android:required="false" />
 
     <application
+        android:name=".WujiApplication"
         android:allowBackup="true"
-        android:icon="@android:drawable/ic_dialog_info"
-        android:label="无极 Wuji"
+        android:icon="@drawable/ic_launcher_compat"
+        android:roundIcon="@drawable/ic_launcher_compat"
+        android:label="@string/app_name"
         android:supportsRtl="true"
         android:usesCleartextTraffic="false"
-        android:theme="@android:style/Theme.Material.Light.NoActionBar">
+        android:networkSecurityConfig="@xml/network_security_config"
+        android:theme="@style/Theme.Wuji">
 
         <!-- 主入口 Activity -->
         <activity
