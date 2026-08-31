@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="color_primary">#EA580C</color>
+    <color name="color_primary_dark">#C2410C</color>
+    <color name="ic_launcher_bg">#EA580C</color>
+    <color name="window_background_light">#F7F8FA</color>
+    <color name="window_background_dark">#121212</color>
+    <color name="status_bar_transparent">@android:color/transparent</color>
+</resources>
