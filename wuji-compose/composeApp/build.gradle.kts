@@ -1,5 +1,7 @@
+import com.android.build.api.variant.FilterConfiguration
 import org.jetbrains.compose.desktop.application.dsl.TargetFormat
 import org.jetbrains.kotlin.gradle.ExperimentalWasmDsl
+import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 
 plugins {
     alias(libs.plugins.kotlin.multiplatform)
@@ -15,8 +17,8 @@ kotlin {
     // Android 目标 - 产出 APK 安装包
     androidTarget {
         compilations.all {
-            kotlinOptions {
-                jvmTarget = "17"
+            compilerOptions {
+                jvmTarget.set(JvmTarget.JVM_17)
             }
         }
     }
@@ -139,16 +141,14 @@ android {
             isUniversalApk = true
         }
     }
-    // AGP 8.x 推荐通过 variant.outputs 读取 ABI 过滤器来计算 versionCode 偏移
+    // AGP 8.x 通过 VariantOutput.getFilter 公开 API 读取 ABI 过滤器计算 versionCode 偏移
     // (universal APK 没有 ABI filter,versionCode = base)
     applicationVariants.all {
         val baseVersionCode = defaultConfig.versionCode!!
-        outputs.all { output ->
-            val abiFilter = output.filters
-                .filterIsInstance<com.android.build.gradle.internal.api.FilterDataImpl>()
-                .firstOrNull { it.filterType == com.android.build.OutputFile.ABI }
-                ?.identifier
-            val abiOffset = when (abiFilter) {
+        outputs.forEach { output ->
+            val impl = output as com.android.build.gradle.internal.api.ApkVariantOutputImpl
+            val abi = impl.getFilter(FilterConfiguration.FilterType.ABI)?.identifier
+            val abiOffset = when (abi) {
                 "armeabi-v7a" -> 10
                 "arm64-v8a"   -> 20
                 "x86"         -> 30
@@ -156,7 +156,6 @@ android {
                 null /* universal */ -> 0
                 else -> 0
             }
-            val impl = output as com.android.build.gradle.internal.api.ApkVariantOutputImpl
             impl.versionCodeOverride = baseVersionCode * 100 + abiOffset
         }
     }
