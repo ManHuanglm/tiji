@@ -1,0 +1,26 @@
+# Gradle
+.gradle/
+build/
+!gradle/wrapper/gradle-wrapper.jar
+
+# Kotlin
+.kotlin/
+.konan/
+
+# Android / IDE
+local.properties
+.idea/
+*.iml
+captures/
+.cxx/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# 日志与临时文件
+*.log
+wuji-reference/
+
+# mise(按需保留或忽略,本地工具版本管理)
+# .mise.toml

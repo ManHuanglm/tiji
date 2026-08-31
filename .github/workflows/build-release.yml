@@ -1,0 +1,330 @@
+name: Build & Release (Per-Architecture)
+
+# ================= 触发条件 =================
+# - push 到 main   : 产出分架构 APK + 分平台桌面包 Artifacts (保留 30 天)
+# - push tag v*    : 同上 + 自动发布到 GitHub Releases (永久留存)
+# - workflow_dispatch: 手动 Run workflow 也可触发
+on:
+  push:
+    branches:
+      - main
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+permissions:
+  contents: write   # Release 所需 (GITHUB_TOKEN 自带)
+  packages: write
+
+# ============ 全局公共环境变量 ============
+env:
+  APP_VERSION: "0.0.02"
+  APK_BASE_VERSION_CODE: "2"
+
+jobs:
+  # ========== ============ Android APK 分 ABI 构建 ============ ==========
+  build-android:
+    name: Build Android APK (5 ABIs × 2 buildTypes)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup JDK 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+        with:
+          packages: 'platform-tools platforms;android-35 build-tools;35.0.0'
+
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v4
+
+      - name: Cache Gradle & Konan
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+            ~/.konan
+          key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle*', '**/libs.versions.toml') }}
+          restore-keys: ${{ runner.os }}-gradle-
+
+      - name: Gradle Wrapper Execute Permission
+        working-directory: wuji-compose
+        run: chmod +x gradlew
+
+      # =============== 按 ABI 拆分打包 ===============
+      # splits 开启后,一次 assembleRelease 会同时产出 4 个单架构 APK + 1 个 universal 通用包
+      # 输出路径: build/outputs/apk/release/composeApp-{abi}-release.apk
+      - name: Build Release APK (Per-ABI splits + universal)
+        working-directory: wuji-compose
+        run: ./gradlew :composeApp:assembleRelease --no-daemon --stacktrace
+
+      - name: Build Debug APK (Per-ABI splits + universal)
+        working-directory: wuji-compose
+        run: ./gradlew :composeApp:assembleDebug --no-daemon
+
+      # =============== 重命名所有 APK: wuji-v{版本}-{短SHA}-{type}-{abi}.apk ===============
+      - name: Rename APK artifacts (per ABI)
+        id: rename
+        run: |
+          set -e
+          SHORT_SHA="${GITHUB_SHA:0:7}"
+          VER="${APP_VERSION}"
+          APK_DIR="wuji-compose/composeApp/build/outputs/apk"
+
+          # 遍历 release 目录,composeApp-arm64-v8a-release.apk / composeApp-universal-release.apk 等
+          for f in "$APK_DIR/release/"*.apk; do
+            [ -f "$f" ] || continue
+            name=$(basename "$f" .apk)
+            # 从文件名抽取 ABI: composeApp-arm64-v8a-release -> arm64-v8a
+            # 当 ABI 段不存在时即 universal (文件名: composeApp-release.apk)
+            ABI="$(echo "$name" | sed -E 's/^composeApp-(.*)-release$/\1/')"
+            if [ "$ABI" = "release" ] || [ -z "$ABI" ]; then ABI="universal"; fi
+            NEW_NAME="wuji-v${VER}-${SHORT_SHA}-release-${ABI}.apk"
+            mv "$f" "$APK_DIR/release/${NEW_NAME}"
+            echo "  RELEASE: $(basename $f) -> ${NEW_NAME}"
+          done
+
+          for f in "$APK_DIR/debug/"*.apk; do
+            [ -f "$f" ] || continue
+            name=$(basename "$f" .apk)
+            ABI="$(echo "$name" | sed -E 's/^composeApp-(.*)-debug$/\1/')"
+            if [ "$ABI" = "debug" ] || [ -z "$ABI" ]; then ABI="universal"; fi
+            NEW_NAME="wuji-v${VER}-${SHORT_SHA}-debug-${ABI}.apk"
+            mv "$f" "$APK_DIR/debug/${NEW_NAME}"
+            echo "  DEBUG: $(basename $f) -> ${NEW_NAME}"
+          done
+
+          echo "apk_version=${VER}" >> $GITHUB_OUTPUT
+          echo "apk_sha=${SHORT_SHA}" >> $GITHUB_OUTPUT
+
+      # =============== 每个 ABI 单独上传 Artifact (用户方便按需下载) ===============
+      - name: Upload APK (universal)
+        uses: actions/upload-artifact@v4
+        with:
+          name: wuji-android-universal-${{ steps.rename.outputs.apk_version }}-${{ steps.rename.outputs.apk_sha }}
+          path: |
+            wuji-compose/composeApp/build/outputs/apk/release/wuji-v*-release-universal.apk
+            wuji-compose/composeApp/build/outputs/apk/debug/wuji-v*-debug-universal.apk
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Upload APK (arm64-v8a)
+        uses: actions/upload-artifact@v4
+        with:
+          name: wuji-android-arm64-v8a-${{ steps.rename.outputs.apk_version }}-${{ steps.rename.outputs.apk_sha }}
+          path: |
+            wuji-compose/composeApp/build/outputs/apk/release/wuji-v*-release-arm64-v8a.apk
+            wuji-compose/composeApp/build/outputs/apk/debug/wuji-v*-debug-arm64-v8a.apk
+          if-no-files-found: warn
+          retention-days: 30
+
+      - name: Upload APK (armeabi-v7a)
+        uses: actions/upload-artifact@v4
+        with:
+          name: wuji-android-armeabi-v7a-${{ steps.rename.outputs.apk_version }}-${{ steps.rename.outputs.apk_sha }}
+          path: |
+            wuji-compose/composeApp/build/outputs/apk/release/wuji-v*-release-armeabi-v7a.apk
+            wuji-compose/composeApp/build/outputs/apk/debug/wuji-v*-debug-armeabi-v7a.apk
+          if-no-files-found: warn
+          retention-days: 30
+
+      - name: Upload APK (x86_64)
+        uses: actions/upload-artifact@v4
+        with:
+          name: wuji-android-x86_64-${{ steps.rename.outputs.apk_version }}-${{ steps.rename.outputs.apk_sha }}
+          path: |
+            wuji-compose/composeApp/build/outputs/apk/release/wuji-v*-release-x86_64.apk
+            wuji-compose/composeApp/build/outputs/apk/debug/wuji-v*-debug-x86_64.apk
+          if-no-files-found: warn
+          retention-days: 30
+
+      - name: Upload APK (x86)
+        uses: actions/upload-artifact@v4
+        with:
+          name: wuji-android-x86-${{ steps.rename.outputs.apk_version }}-${{ steps.rename.outputs.apk_sha }}
+          path: |
+            wuji-compose/composeApp/build/outputs/apk/release/wuji-v*-release-x86.apk
+            wuji-compose/composeApp/build/outputs/apk/debug/wuji-v*-debug-x86.apk
+          if-no-files-found: warn
+          retention-days: 30
+
+  # ========== ============ 桌面端分平台分架构构建 ========== ==========
+  build-desktop:
+    name: Build Desktop ${{ matrix.platform }} ${{ matrix.arch }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # Linux: GitHub 目前免费 runner 只有 x86_64 Ubuntu
+          - os: ubuntu-latest
+            platform: linux
+            arch: x86_64
+            gradle-task: packageDeb
+            ext: deb
+            continue-error: false
+
+          # Windows: 免费 runner x86_64 Server
+          - os: windows-latest
+            platform: windows
+            arch: x86_64
+            gradle-task: packageMsi
+            ext: msi
+            continue-error: true   # WiX/jpackage 偶发兼容性问题,允许失败不阻断 Release
+
+          # macOS Intel (x86_64) - macos-13 是最后一代免费 Intel runner
+          - os: macos-13
+            platform: macos
+            arch: x86_64
+            gradle-task: packageDmg
+            ext: dmg
+            continue-error: false
+
+          # macOS Apple Silicon (arm64 / M1 / M2 / M3) - macos-latest = macos-14 = ARM
+          - os: macos-latest
+            platform: macos
+            arch: arm64
+            gradle-task: packageDmg
+            ext: dmg
+            continue-error: false
+    runs-on: ${{ matrix.os }}
+    continue-on-error: ${{ matrix.continue-error }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup JDK 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v4
+
+      - name: Cache Gradle & Konan
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+            ~/.konan
+          key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle*', '**/libs.versions.toml') }}
+          restore-keys: ${{ runner.os }}-gradle-
+
+      - name: Gradle Wrapper Execute Permission (Unix)
+        if: runner.os != 'Windows'
+        working-directory: wuji-compose
+        run: chmod +x gradlew
+
+      # =============== 构建桌面包 ===============
+      # Compose Desktop 会根据当前 runner 架构自动选择目标 JDK arch:
+      #   ubuntu-latest -> x86_64 deb
+      #   windows-latest -> x86_64 msi
+      #   macos-13 -> x86_64 dmg (Intel Mac)
+      #   macos-latest -> arm64 dmg (Apple Silicon)
+      - name: Build Desktop Dist
+        working-directory: wuji-compose
+        run: ./gradlew :composeApp:${{ matrix.gradle-task }} --no-daemon --stacktrace
+        shell: bash
+
+      # =============== 统一重命名: wuji-v{版本}-{平台}-{架构}-{SHA}.{ext} ===============
+      - name: Rename & Upload Desktop Artifact
+        shell: bash
+        run: |
+          set -e
+          SHORT_SHA="${GITHUB_SHA:0:7}"
+          VER="${APP_VERSION}"
+          OUT_BASE="wuji-compose/composeApp/build/compose/binaries"
+          EXT="${{ matrix.ext }}"
+          PLAT="${{ matrix.platform }}"
+          ARCH="${{ matrix.arch }}"
+
+          # 找到产物文件 (不同 Compose/AGP 版本路径略有差异,用 find 兜底)
+          PKG_FILE="$(find "$OUT_BASE" -type f \( -name "*.${EXT}" \) | head -n 1)"
+          if [ -z "$PKG_FILE" ]; then
+            echo "❌ 没有找到 $EXT 安装包"
+            find "$OUT_BASE" -type f || true
+            exit 1
+          fi
+
+          PKG_DIR="$(dirname "$PKG_FILE")"
+          NEW_NAME="wuji-v${VER}-${PLAT}-${ARCH}-${SHORT_SHA}.${EXT}"
+          mv "$PKG_FILE" "${PKG_DIR}/${NEW_NAME}"
+          echo "✅ renamed: $PKG_FILE -> ${PKG_DIR}/${NEW_NAME}"
+          echo "artifact_path=${PKG_DIR}/${NEW_NAME}" >> $GITHUB_ENV
+          echo "artifact_name=wuji-desktop-${PLAT}-${ARCH}-${VER}-${SHORT_SHA}" >> $GITHUB_ENV
+
+      - name: Upload ${{ matrix.platform }} ${{ matrix.arch }} Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ env.artifact_name }}
+          path: ${{ env.artifact_path }}
+          if-no-files-found: warn
+          retention-days: 30
+
+  # ========== ============ 发布到 GitHub Releases (仅 tag 触发) ========== ==========
+  release:
+    name: Publish GitHub Release
+    needs: [build-android, build-desktop]
+    runs-on: ubuntu-latest
+    if: always() && !cancelled() && startsWith(github.ref, 'refs/tags/v') && needs.build-android.result == 'success'
+    steps:
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+
+      - name: Display structure
+        run: find artifacts -type f | sort
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.ref_name }}
+          name: 无极 Wuji ${{ github.ref_name }}
+          body: |
+            ## 无极 Wuji ${{ github.ref_name }}
+
+            ### 版本信息
+            | 项 | 值 |
+            |----|----|
+            | versionName | `${APP_VERSION}` |
+            | base versionCode | `${APK_BASE_VERSION_CODE}` (×100 + ABI 偏移,见下方 APK 版本) |
+            | 构建 Commit SHA | `${GITHUB_SHA:0:7}` |
+
+            ### 📱 Android APK（5 种 ABI × release/debug）
+            | ABI | 适用设备 | versionCode | 文件名前缀 |
+            |-----|----------|-------------|------------|
+            | **arm64-v8a**  | 2018+ 主流手机（骁龙 845+ / 麒麟 980+ / 天玑 1000+） | 220 | `wuji-v${APP_VERSION}-*-release-arm64-v8a.apk` |
+            | **armeabi-v7a**| 老旧 32 位手机（骁龙 835 及之前） | 210 | `wuji-v${APP_VERSION}-*-release-armeabi-v7a.apk` |
+            | **x86_64**     | 安卓模拟器 / 云手机 / Chromebook | 240 | `wuji-v${APP_VERSION}-*-release-x86_64.apk` |
+            | **x86**        | 老旧 x86 模拟器 / 平板 | 230 | `wuji-v${APP_VERSION}-*-release-x86.apk` |
+            | **universal**  | 通用包（体积最大，全部 ABI 兼容） | 200 | `wuji-v${APP_VERSION}-*-release-universal.apk` |
+
+            > 💡 **推荐**：大多数手机下载 **arm64-v8a**，比 universal 小约 15%~30%。无法判断机型时下载 universal 兜底。
+
+            ### 💻 PC 桌面包（分平台分架构）
+            | 平台 | 架构 | 格式 | 适用 |
+            |------|------|------|------|
+            | Linux | x86_64 | `.deb` | Debian / Ubuntu 系 AMD64 |
+            | Windows | x86_64 | `.msi` | Win10/11 64 位（需 WiX Toolset 环境打包，CI 允许失败） |
+            | macOS | x86_64 | `.dmg` | Intel Mac（MacBook 2020 以前） |
+            | macOS | arm64 | `.dmg` | Apple Silicon（M1/M2/M3/M4 全系） |
+
+            ### 升级提示
+            - 手机：从旧版本升级若提示「签名冲突」，请先卸载旧版再安装（release / debug 签名不同）。
+            - macOS：首次打开若提示「未知开发者」，在「系统设置→隐私与安全性」点「仍要打开」或执行 `xattr -d com.apple.quarantine *.dmg`。
+          files: |
+            artifacts/**/*.apk
+            artifacts/**/*.deb
+            artifacts/**/*.msi
+            artifacts/**/*.dmg
+          draft: false
+          prerelease: false
