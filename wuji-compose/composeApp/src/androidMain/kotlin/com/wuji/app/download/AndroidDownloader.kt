@@ -4,7 +4,7 @@ import android.content.ContentValues
 import android.os.Build
 import android.os.Environment
 import android.provider.MediaStore
-import com.wuji.app.core.platform.ContextHolder
+import com.wuji.app.core.storage.ContextHolder
 import com.wuji.app.source.SourceFetcher
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -65,7 +65,7 @@ class AndroidDownloader : Downloader {
     @Suppress("DEPRECATION")
     private suspend fun runTask(task: DownloadTask, resume: Boolean) {
         val listener = listeners[task.id] ?: return
-        val context = ContextHolder.context
+        val context = ContextHolder.appContext
         val fileName = task.destination.takeIf { it.isNotBlank() }
             ?: task.url.substringAfterLast('/').ifBlank { task.title }
 
