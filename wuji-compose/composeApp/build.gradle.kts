@@ -174,6 +174,8 @@ compose.desktop {
             }
             macOS {
                 bundleID = "com.wuji.app"
+                // macOS Dmg 要求版本号 MAJOR>0,全局 0.0.02 不合法,单独覆盖
+                packageVersion = "1.0.0"
             }
             linux {
                 packageName = "wuji"
